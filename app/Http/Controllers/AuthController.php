@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Log;
 class AuthController extends Controller
 {
     public function register(Request $request)
@@ -33,6 +34,7 @@ class AuthController extends Controller
 public function login(Request $request)
 {
     try {
+        Log::info('Incoming login request:', $request->all());
         // Validate the request data
         $request->validate([
             'email' => 'required|string|email',
@@ -41,6 +43,7 @@ public function login(Request $request)
 
         // Attempt to log in the user
         if (!Auth::attempt($request->only('email', 'password'))) {
+            Log::warning('Invalid login details', $request->only('email')); // Log invalid login attempt
             return response()->json([
                 'message' => 'Invalid login details',
             ], 401);
@@ -50,10 +53,12 @@ public function login(Request $request)
         $user = Auth::user();
         $token = $user->createToken('')->plainTextToken;
 
+        Log::info('Login successful for user:', ['email' => $user->email]);
         // Return the generated token
         return response()->json(['token' => $token], 200);
 
     } catch (\Exception $e) {
+        Log::error('Login error:', ['error' => $e->getMessage()]);
         // Handle any exceptions that may occur
         return response()->json([
             'message' => 'An error occurred during login. Please try again later.',
